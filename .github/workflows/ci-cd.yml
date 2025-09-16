@@ -1,0 +1,305 @@
+name: Frontend CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '18'
+  CACHE_KEY: npm-cache
+
+jobs:
+  # Code Quality & Security
+  quality-gate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Type checking
+      run: npm run type-check
+    
+    - name: Lint code
+      run: npm run lint
+    
+    - name: Lint accessibility
+      run: npm run lint:a11y
+    
+    - name: Security audit
+      run: npm audit --audit-level moderate
+    
+    - name: Check for vulnerabilities
+      run: npm audit --audit-level high
+
+  # Unit & Integration Tests
+  test-unit:
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run unit tests
+      run: npm run test -- --coverage
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+
+  # End-to-End Tests
+  test-e2e:
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+    
+    - name: Build application
+      run: npm run build:staging
+    
+    - name: Run E2E tests
+      run: npm run test:e2e
+    
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+
+  # Accessibility Tests
+  test-accessibility:
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+    
+    - name: Build application
+      run: npm run build:staging
+    
+    - name: Run accessibility tests
+      run: npm run test:a11y
+    
+    - name: Upload accessibility test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: accessibility-report
+        path: test-results/
+
+  # Performance Tests
+  test-performance:
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+    
+    - name: Build application
+      run: npm run build:production
+    
+    - name: Run performance tests
+      run: npm run test:performance
+    
+    - name: Performance audit
+      run: npm run audit:performance
+    
+    - name: Upload performance reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-report
+        path: reports/
+
+  # Build for Multiple Environments
+  build:
+    runs-on: ubuntu-latest
+    needs: [test-unit, test-e2e, test-accessibility, test-performance]
+    
+    strategy:
+      matrix:
+        environment: [staging, production]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Generate API types
+      run: npm run generate:api-types
+      env:
+        VITE_API_BASE_URL: ${{ matrix.environment == 'production' && 'https://api.gameforge.app' || 'https://staging-api.gameforge.app' }}
+    
+    - name: Build for ${{ matrix.environment }}
+      run: npm run build:${{ matrix.environment }}
+      env:
+        VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        VITE_FLAGSMITH_ENVIRONMENT_KEY: ${{ matrix.environment == 'production' && secrets.FLAGSMITH_PROD_KEY || secrets.FLAGSMITH_STAGING_KEY }}
+        VITE_API_BASE_URL: ${{ matrix.environment == 'production' && 'https://api.gameforge.app' || 'https://staging-api.gameforge.app' }}
+        VITE_ENABLE_ERROR_TRACKING: 'true'
+        VITE_ENABLE_ANALYTICS: ${{ matrix.environment == 'production' && 'true' || 'false' }}
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-${{ matrix.environment }}
+        path: dist/
+        retention-days: 7
+
+  # Deploy to Staging
+  deploy-staging:
+    if: github.ref == 'refs/heads/develop'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download staging build
+      uses: actions/download-artifact@v3
+      with:
+        name: build-staging
+        path: dist/
+    
+    - name: Deploy to Vercel Staging
+      uses: vercel/action@v1
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.ORG_ID }}
+        vercel-project-id: ${{ secrets.PROJECT_ID }}
+        scope: ${{ secrets.TEAM_ID }}
+
+  # Deploy to Production
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download production build
+      uses: actions/download-artifact@v3
+      with:
+        name: build-production
+        path: dist/
+    
+    - name: Deploy to Vercel Production
+      uses: vercel/action@v1
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.ORG_ID }}
+        vercel-project-id: ${{ secrets.PROJECT_ID }}
+        vercel-args: '--prod'
+        scope: ${{ secrets.TEAM_ID }}
+
+  # Create Sentry Release
+  sentry-release:
+    if: github.ref == 'refs/heads/main'
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Create Sentry release
+      uses: getsentry/action-release@v1
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        SENTRY_ORG: gameforge
+        SENTRY_PROJECT: frontend
+      with:
+        environment: production
+        version: ${{ github.sha }}
+        sourcemaps: './dist'
+
+  # Notify Deployment Status
+  notify:
+    if: always()
+    needs: [deploy-staging, deploy-production]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Notify deployment status
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        text: |
+          Deployment ${{ job.status }}!
+          Environment: ${{ github.ref == 'refs/heads/main' && 'Production' || 'Staging' }}
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

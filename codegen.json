@@ -1,0 +1,29 @@
+{
+  "generates": {
+    "src/types/api.ts": {
+      "schema": "https://api.gameforge.app/openapi.json",
+      "plugins": [
+        "typescript"
+      ],
+      "config": {
+        "strictScalars": true,
+        "scalars": {
+          "DateTime": "string"
+        }
+      }
+    },
+    "src/services/api-client.ts": {
+      "schema": "https://api.gameforge.app/openapi.json", 
+      "plugins": [
+        "typescript-operations",
+        "typescript-react-query"
+      ],
+      "config": {
+        "reactQueryVersion": 5,
+        "exposeFetcher": true,
+        "exposeQueryKeys": true,
+        "addInfiniteQuery": true
+      }
+    }
+  }
+}
