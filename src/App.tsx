@@ -14,7 +14,6 @@ import { AssetEditingStudio } from './components/AssetEditingStudio'
 import { PreviewWorkspace } from './components/PreviewWorkspace'
 import { GameplayStudio } from './components/GameplayStudio'
 import { CodeGenerationWorkspace } from './components/CodeGenerationWorkspace'
-import { ProjectCreationMockup } from './components/ProjectCreationMockup'
 import { ProfilePage } from './components/ProfilePage'
 import { SettingsPage } from './components/SettingsPage'
 import { Toaster } from './components/ui/sonner'
@@ -668,8 +667,6 @@ function App() {
             </div>
           </motion.div>
         )
-      case 'creation-test':
-        return <ProjectCreationMockup />
       case 'profile':
         return (
           <ProfilePage 

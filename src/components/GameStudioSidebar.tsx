@@ -93,12 +93,6 @@ const authNavigationSections: NavigationSection[] = [
     name: 'Publishing',
     icon: Rocket,
     path: '/publishing'
-  },
-  {
-    id: 'creation-test',
-    name: '🧪 Enhanced Creation',
-    icon: Sparkle,
-    path: '/creation-test'
   }
 ]
 
