@@ -17,31 +17,28 @@ import { MagnifyingGlass } from '@phosphor-icons/react/dist/csr/MagnifyingGlass'
 import { SortAscending } from '@phosphor-icons/react/dist/csr/SortAscending'
 import { GridFour } from '@phosphor-icons/react/dist/csr/GridFour'
 import { List } from '@phosphor-icons/react/dist/csr/List'
-import { Upload } from '@phosphor-icons/react/dist/csr/Upload'
 import { Shuffle } from '@phosphor-icons/react/dist/csr/Shuffle'
 import { ArrowsClockwise } from '@phosphor-icons/react/dist/csr/ArrowsClockwise'
 import { PencilSimple } from '@phosphor-icons/react/dist/csr/PencilSimple'
 import { Link } from '@phosphor-icons/react/dist/csr/Link'
-import { Tag } from '@phosphor-icons/react/dist/csr/Tag'
 import { Sliders } from '@phosphor-icons/react/dist/csr/Sliders'
 import { Lightning } from '@phosphor-icons/react/dist/csr/Lightning'
+import { ShoppingCart } from '@phosphor-icons/react/dist/csr/ShoppingCart'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
-import { ArtAsset, AudioAsset, ModelAsset, UIAsset, AssetGenerationParams, GameProject } from '@/lib/types'
+import { AssetGenerationParams, GameProject } from '@/lib/types'
 import { generateAssets } from '@/lib/aiMockGenerator'
 import { AIAssetGenerator } from './AIAssetGenerator'
 import { StylePackManager } from './StylePackManager'
 import { BatchRequestCreator } from './BatchRequestCreator'
+import EnhancedMarketplacePanel from './EnhancedMarketplacePanel'
 import { GeneratedAsset } from '../lib/assetStorage'
 
 interface AssetStudioWorkspaceProps {
@@ -58,7 +55,7 @@ export function AssetStudioWorkspace({ projectId, project, onEditAsset, classNam
   const [selectedAsset, setSelectedAsset] = useState<any | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationPrompt, setGenerationPrompt] = useState('')
-  const [activeWorkspace, setActiveWorkspace] = useState<'assets' | 'style-packs' | 'batch-requests' | 'ai-generator'>('assets')
+  const [activeWorkspace, setActiveWorkspace] = useState<'assets' | 'style-packs' | 'batch-requests' | 'ai-generator' | 'marketplace'>('assets')
   const [generationParams, setGenerationParams] = useState<AssetGenerationParams>({
     prompt: '',
     type: 'art',
@@ -760,6 +757,14 @@ export function AssetStudioWorkspace({ projectId, project, onEditAsset, classNam
             <Sparkle className="w-4 h-4 mr-2" />
             AI Generator
           </Button>
+          <Button
+            variant={activeWorkspace === 'marketplace' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveWorkspace('marketplace')}
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            Marketplace
+          </Button>
         </div>
       </div>
 
@@ -804,6 +809,12 @@ export function AssetStudioWorkspace({ projectId, project, onEditAsset, classNam
               onAssetGenerated={handleAssetGenerated}
               className="h-full"
             />
+          </div>
+        )}
+        
+        {activeWorkspace === 'marketplace' && (
+          <div className="h-full">
+            <EnhancedMarketplacePanel />
           </div>
         )}
       </div>

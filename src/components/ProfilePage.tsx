@@ -5,7 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AuthContext } from '@/contexts/AuthContext'
+import AnalyticsDashboard from './AnalyticsDashboard'
+import { useAutoTracking } from '@/hooks/useAnalytics'
 // Import icons directly to bypass proxy issues
 import { User } from '@phosphor-icons/react/dist/csr/User'
 import { Gear } from '@phosphor-icons/react/dist/csr/Gear'
@@ -17,6 +20,7 @@ import { ArrowLeft } from '@phosphor-icons/react/dist/csr/ArrowLeft'
 import { Pencil } from '@phosphor-icons/react/dist/csr/Pencil'
 import { Check } from '@phosphor-icons/react/dist/csr/Check'
 import { X } from '@phosphor-icons/react/dist/csr/X'
+import { ChartLine } from '@phosphor-icons/react/dist/csr/ChartLine'
 
 interface ProfilePageProps {
   onBack: () => void
@@ -29,6 +33,9 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false)
   const [displayName, setDisplayName] = useState(user?.name || '')
   const [isUpdating, setIsUpdating] = useState(false)
+
+  // Initialize auto tracking for analytics
+  useAutoTracking(user?.id)
 
   // Debug logging to see what user data we have
   console.log('ProfilePage user object:', user)
@@ -115,17 +122,31 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Overview */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* User Info Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User size={20} />
-                Account Information
-              </CardTitle>
-              <CardDescription>
+      {/* Profile Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <User size={16} />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <ChartLine size={16} />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Profile Overview */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* User Info Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User size={20} />
+                    Account Information
+                  </CardTitle>
+                  <CardDescription>
                 Your basic account details and profile information
               </CardDescription>
             </CardHeader>
@@ -198,7 +219,7 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">User ID</label>
-                  <p className="text-sm font-mono text-xs">{user.id}</p>
+                  <p className="text-xs font-mono">{user.id}</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Account Status</label>
@@ -308,6 +329,12 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
           </Card>
         </div>
       </div>
-    </motion.div>
-  )
+    </TabsContent>
+
+    <TabsContent value="analytics" className="space-y-6 mt-6">
+      <AnalyticsDashboard userId={user.id} className="w-full" />
+    </TabsContent>
+  </Tabs>
+</motion.div>
+)
 }

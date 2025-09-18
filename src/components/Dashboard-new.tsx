@@ -4,6 +4,7 @@ import { GameProject } from '@/lib/types'
 import { ProjectCard, EmptyProjectCard } from '@/components/ProjectCard'
 import { PipelineVisualization } from '@/components/PipelineVisualization'
 import { EnhancedProjectCreationDialog } from '@/components/EnhancedProjectCreationDialog'
+import MarketplacePanel from '@/components/MarketplacePanel'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,7 +18,9 @@ import {
   TrendUp,
   Clock,
   Target,
-  GameController
+  GameController,
+  CaretLeft,
+  CaretRight
 } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 
@@ -35,6 +38,7 @@ export function Dashboard({ onProjectSelect, onQAWorkspace, projects, onProjects
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'progress'>('updated')
+  const [isMarketplacePanelOpen, setIsMarketplacePanelOpen] = useState(true)
 
   const filteredProjects = projects.filter(project =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -70,8 +74,13 @@ export function Dashboard({ onProjectSelect, onQAWorkspace, projects, onProjects
   const completedProjects = projects.filter(p => p.status === 'complete').length
 
   return (
-    <div className="flex-1 h-full overflow-auto custom-scrollbar">
-      <div className="p-6 space-y-8">
+    <div className="flex flex-1 h-full">
+      {/* Main Content */}
+      <div className={cn(
+        "transition-all duration-300 overflow-auto custom-scrollbar",
+        isMarketplacePanelOpen ? "flex-1 pr-2" : "flex-1"
+      )}>
+        <div className="p-6 space-y-8">
           {/* Hero Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -79,9 +88,27 @@ export function Dashboard({ onProjectSelect, onQAWorkspace, projects, onProjects
             transition={{ duration: 0.6 }}
             className="text-center space-y-4"
           >
-            <h1 className="text-4xl font-bold text-foreground mb-2">
-              Welcome to Your Game Studio
-            </h1>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1" />
+              <h1 className="text-4xl font-bold text-foreground">
+                Welcome to Your Game Studio
+              </h1>
+              <div className="flex-1 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsMarketplacePanelOpen(!isMarketplacePanelOpen)}
+                  className="text-muted-foreground hover:text-foreground"
+                  title={isMarketplacePanelOpen ? "Hide Marketplace" : "Show Marketplace"}
+                >
+                  {isMarketplacePanelOpen ? (
+                    <CaretRight size={20} />
+                  ) : (
+                    <CaretLeft size={20} />
+                  )}
+                </Button>
+              </div>
+            </div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Transform your creative ideas into amazing games with AI-powered development tools
             </p>
@@ -212,7 +239,7 @@ export function Dashboard({ onProjectSelect, onQAWorkspace, projects, onProjects
                   className={cn(
                     'gap-6',
                     viewMode === 'grid' 
-                      ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                      ? `grid grid-cols-1 ${isMarketplacePanelOpen ? 'md:grid-cols-1 lg:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`
                       : 'flex flex-col'
                   )}
                 >
@@ -307,15 +334,29 @@ export function Dashboard({ onProjectSelect, onQAWorkspace, projects, onProjects
               )}
             </TabsContent>
           </Tabs>
-
-          {/* Enhanced Project Creation Dialog */}
-          <EnhancedProjectCreationDialog
-            isOpen={isCreateDialogOpen}
-            onClose={() => setIsCreateDialogOpen(false)}
-            onProjectCreated={handleProjectCreated}
-            onQAWorkspace={onQAWorkspace}
-          />
+        </div>
       </div>
+
+      {/* Marketplace Panel */}
+      {isMarketplacePanelOpen && (
+        <motion.div
+          initial={{ opacity: 0, x: 300 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 300 }}
+          transition={{ duration: 0.3 }}
+          className="w-96 border-l border-border/50 bg-background"
+        >
+          <MarketplacePanel />
+        </motion.div>
+      )}
+
+      {/* Enhanced Project Creation Dialog */}
+      <EnhancedProjectCreationDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onProjectCreated={handleProjectCreated}
+        onQAWorkspace={onQAWorkspace}
+      />
     </div>
   )
 }

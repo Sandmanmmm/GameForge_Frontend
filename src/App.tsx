@@ -16,6 +16,7 @@ import { GameplayStudio } from './components/GameplayStudio'
 import { CodeGenerationWorkspace } from './components/CodeGenerationWorkspace'
 import { ProfilePage } from './components/ProfilePage'
 import { SettingsPage } from './components/SettingsPage'
+import { SecurityDashboard } from './components/SecurityDashboard'
 import { Toaster } from './components/ui/sonner'
 import { useLocalStorage } from './hooks/use-local-storage'
 import { useIsMobile } from './hooks/use-mobile'
@@ -678,6 +679,12 @@ function App() {
         return (
           <SettingsPage 
             onBack={handleSettingsBack}
+          />
+        )
+      case 'security':
+        return (
+          <SecurityDashboard 
+            onBack={() => setCurrentSection('dashboard')}
           />
         )
       default:

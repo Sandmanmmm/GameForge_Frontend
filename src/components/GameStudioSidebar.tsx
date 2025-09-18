@@ -19,6 +19,7 @@ import { TestTube } from '@phosphor-icons/react/dist/csr/TestTube'
 import { MonitorPlay } from '@phosphor-icons/react/dist/csr/MonitorPlay'
 import { Rocket } from '@phosphor-icons/react/dist/csr/Rocket'
 import { Sparkle } from '@phosphor-icons/react/dist/csr/Sparkle'
+import { Shield } from '@phosphor-icons/react/dist/csr/Shield'
 import { List } from '@phosphor-icons/react/dist/csr/List'
 import { X } from '@phosphor-icons/react/dist/csr/X'
 import { SignIn } from '@phosphor-icons/react/dist/csr/SignIn'
@@ -93,6 +94,12 @@ const authNavigationSections: NavigationSection[] = [
     name: 'Publishing',
     icon: Rocket,
     path: '/publishing'
+  },
+  {
+    id: 'security',
+    name: 'Security',
+    icon: Shield,
+    path: '/security'
   }
 ]
 
