@@ -14,11 +14,11 @@ export function UserMenu() {
   return (
     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
       <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center font-medium">
-        {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+        {user.name?.charAt(0) || user.username?.charAt(0) || user.email?.charAt(0) || 'U'}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">
-          {user.name || 'User'}
+          {user.name || user.username || user.email?.split('@')[0] || 'User'}
         </p>
         <p className="text-xs text-gray-500 truncate">
           {user.email}

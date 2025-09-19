@@ -334,7 +334,7 @@ export function GameStudioSidebar({
                         <User size={16} className="text-accent" />
                       </div>
                       <div className="flex-1 text-left">
-                        <div className="text-sm font-medium truncate">{user.name || 'User'}</div>
+                        <div className="text-sm font-medium truncate">{user.name || user.username || user.email?.split('@')[0] || 'User'}</div>
                         <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                       </div>
                     </Button>

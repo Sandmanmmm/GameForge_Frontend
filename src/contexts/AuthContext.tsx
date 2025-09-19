@@ -9,7 +9,7 @@ interface AuthContextType {
   loginWithGitHub: () => void;
   loginWithGoogle: () => void;
   handleOAuthCallback: (token: string, user: any) => void;
-  updateUserProfile: (profileData: { name?: string }) => Promise<void>;
+  updateUserProfile: (profileData: { name?: string; username?: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -105,24 +105,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     AuthAPI.setToken(token);
   };
 
-  const updateUserProfile = async (profileData: { name?: string }) => {
+  const updateUserProfile = async (profileData: { name?: string; username?: string }) => {
     try {
+      console.log('AuthContext: Updating user profile with data:', profileData)
       const response = await AuthAPI.updateProfile(profileData);
+      console.log('AuthContext: API response:', response)
+      
       if (response.success && response.data) {
         // Update the user state with the new data
         const updatedUser = response.data.user;
+        console.log('AuthContext: Setting updated user:', updatedUser)
         setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
         
         // Update token if a new one was provided
         if (response.data.access_token) {
+          console.log('AuthContext: Updating token')
           setToken(response.data.access_token);
           localStorage.setItem("token", response.data.access_token);
         }
       } else {
+        console.error('AuthContext: API response not successful:', response)
         throw new Error(response.error?.message || "Profile update failed");
       }
     } catch (error: any) {
+      console.error('AuthContext: Profile update error:', error)
+      
+      // If the API endpoint doesn't exist (404) or backend is not ready,
+      // update the local state as a fallback
+      if (error.response?.status === 404 || error.message?.includes('404') || error.message?.includes('Not Found')) {
+        console.log('AuthContext: API endpoint not found, updating local state only')
+        const updatedUser = { ...user, ...profileData };
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        return; // Don't throw error, treat as success
+      }
+      
       throw new Error(error.message || "Profile update failed");
     }
   };

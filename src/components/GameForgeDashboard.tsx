@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GameProject } from '@/lib/types'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -96,6 +97,12 @@ export function GameForgeDashboard({
   onProjectsChange,
   onSectionChange 
 }: GameForgeDashboardProps) {
+  const { user } = useAuth()
+  
+  // Debug logging to check user data
+  console.log('GameForgeDashboard - User object:', user)
+  console.log('GameForgeDashboard - User name:', user?.name)
+  
   const [gameIdea, setGameIdea] = useState('')
   const [selectedGenre, setSelectedGenre] = useState('adventure')
   const [isEnhancedDialogOpen, setIsEnhancedDialogOpen] = useState(false)
@@ -405,7 +412,7 @@ export function GameForgeDashboard({
         >
           <div className="space-y-2">
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-accent via-purple-400 to-blue-400 bg-clip-text text-transparent">
-              Welcome back to GameForge 🎮
+              Welcome back{user?.name ? ` ${user.name}` : user?.username ? ` ${user.username}` : user?.email ? ` ${user.email.split('@')[0]}` : ''} to GameForge 🎮
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Turn your ideas into fully playable games with AI. Describe your vision and watch it come to life.

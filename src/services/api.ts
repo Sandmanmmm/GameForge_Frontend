@@ -422,19 +422,29 @@ export const AuthAPI = {
    * Update user profile
    */
   async updateProfile(profileData: { name?: string }): Promise<APIResponse<{ user: any; access_token: string; token_type: string }>> {
-    const response = await gameforgeAPI.patch<{ user: any; access_token: string; token_type: string }>('/auth/me', 
-      profileData,
-      { requireAuth: true }
-    );
+    console.log('AuthAPI: Attempting to update profile with data:', profileData)
     
-    // Update the token if a new one is provided
-    if (response.success && response.data?.access_token) {
-      gameforgeAPI.setAuthToken(response.data.access_token);
-      inferenceAPI.setAuthToken(response.data.access_token);
-      superresAPI.setAuthToken(response.data.access_token);
+    try {
+      const response = await gameforgeAPI.patch<{ user: any; access_token: string; token_type: string }>('/auth/me', 
+        profileData,
+        { requireAuth: true }
+      );
+      
+      console.log('AuthAPI: Profile update response:', response)
+      
+      // Update the token if a new one is provided
+      if (response.success && response.data?.access_token) {
+        console.log('AuthAPI: Updating tokens with new access_token')
+        gameforgeAPI.setAuthToken(response.data.access_token);
+        inferenceAPI.setAuthToken(response.data.access_token);
+        superresAPI.setAuthToken(response.data.access_token);
+      }
+      
+      return response;
+    } catch (error: any) {
+      console.error('AuthAPI: Profile update failed:', error)
+      throw error;
     }
-    
-    return response;
   },
   
   /**

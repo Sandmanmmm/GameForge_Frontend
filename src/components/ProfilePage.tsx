@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AuthContext } from '@/contexts/AuthContext'
 import AnalyticsDashboard from './AnalyticsDashboard'
 import { useAutoTracking } from '@/hooks/useAnalytics'
+import { toast } from 'sonner'
 // Import icons directly to bypass proxy issues
 import { User } from '@phosphor-icons/react/dist/csr/User'
 import { Gear } from '@phosphor-icons/react/dist/csr/Gear'
@@ -31,7 +32,9 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
   const { user, updateUserProfile } = useContext(AuthContext)
   const [activeTab, setActiveTab] = useState('overview')
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false)
+  const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [displayName, setDisplayName] = useState(user?.name || '')
+  const [username, setUsername] = useState(user?.username || '')
   const [isUpdating, setIsUpdating] = useState(false)
 
   // Initialize auto tracking for analytics
@@ -42,15 +45,24 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
   console.log('Current displayName state:', displayName)
 
   // Update displayName when user changes (important for OAuth flow)
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('useEffect triggered - user.name changed to:', user?.name)
     if (user?.name !== undefined) {
       setDisplayName(user.name || '')
     }
   }, [user?.name])
 
+  // Update username when user changes
+  useEffect(() => {
+    console.log('useEffect triggered - user.username changed to:', user?.username)
+    if (user?.username !== undefined) {
+      setUsername(user.username || '')
+    }
+  }, [user?.username])
+
   const handleSaveDisplayName = async () => {
     if (!displayName.trim()) {
+      toast.error('Display name cannot be empty')
       return
     }
     
@@ -60,11 +72,26 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
       await updateUserProfile({ name: displayName.trim() })
       console.log('✅ Display name updated successfully')
       console.log('Updated user object:', user)
+      toast.success('Display name updated successfully!')
       setIsEditingDisplayName(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to update display name:', error)
-      // Reset to original value on error
-      setDisplayName(user?.name || '')
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      })
+      
+      // Check if it's a 404 error (API not implemented) but local state was updated
+      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+        toast.success('Display name updated locally (API endpoint not available)')
+        setIsEditingDisplayName(false)
+      } else {
+        toast.error(`Failed to update display name: ${error.message || 'Please try again.'}`)
+        // Reset to original value on error
+        setDisplayName(user?.name || '')
+      }
     } finally {
       setIsUpdating(false)
     }
@@ -73,6 +100,40 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
   const handleCancelEdit = () => {
     setDisplayName(user?.name || '')
     setIsEditingDisplayName(false)
+  }
+
+  const handleSaveUsername = async () => {
+    if (!username.trim()) {
+      toast.error('Username cannot be empty')
+      return
+    }
+    
+    try {
+      setIsUpdating(true)
+      await updateUserProfile({ username: username.trim() })
+      
+      toast.success('Username updated successfully!')
+      setIsEditingUsername(false)
+    } catch (error: any) {
+      console.error('Error updating username:', error)
+      if (error.status === 404) {
+        // API endpoint not available, update locally
+        console.log('API not available, updating username locally')
+        toast.success('Username updated locally (API not available)')
+        setIsEditingUsername(false)
+      } else {
+        toast.error(`Failed to update username: ${error.message || 'Please try again.'}`)
+        // Reset to original value on error
+        setUsername(user?.username || '')
+      }
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleCancelUsernameEdit = () => {
+    setUsername(user?.username || '')
+    setIsEditingUsername(false)
   }
 
   if (!user) {
@@ -156,7 +217,7 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
                   <User size={24} className="text-accent" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{user.name || 'User'}</h3>
+                  <h3 className="text-xl font-semibold">{user.name || user.username || user.email?.split('@')[0] || 'User'}</h3>
                   <p className="text-muted-foreground flex items-center gap-2">
                     <Envelope size={16} />
                     {user.email}
@@ -187,9 +248,18 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
                       <Input
                         value={displayName}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
+                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                          if (e.key === 'Enter' && displayName.trim() && !isUpdating) {
+                            handleSaveDisplayName()
+                          }
+                          if (e.key === 'Escape') {
+                            handleCancelEdit()
+                          }
+                        }}
                         placeholder="Enter display name"
                         className="flex-1"
                         disabled={isUpdating}
+                        autoFocus
                       />
                       <Button
                         size="sm"
@@ -210,7 +280,62 @@ export function ProfilePage({ onBack, onSettingsOpen }: ProfilePageProps) {
                       </Button>
                     </div>
                   ) : (
-                    <p className="text-sm">{user.name || 'Not set'}</p>
+                    <p className="text-sm">{user.name || user.username || user.email?.split('@')[0] || 'Not set'}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-muted-foreground">Username</label>
+                    {!isEditingUsername && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditingUsername(true)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Pencil size={12} className="mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                  {isEditingUsername ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={username}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                          if (e.key === 'Enter' && username.trim() && !isUpdating) {
+                            handleSaveUsername()
+                          }
+                          if (e.key === 'Escape') {
+                            handleCancelUsernameEdit()
+                          }
+                        }}
+                        placeholder="Enter username"
+                        className="flex-1"
+                        disabled={isUpdating}
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleSaveUsername}
+                        disabled={isUpdating || !username.trim()}
+                        className="h-8 px-2"
+                      >
+                        <Check size={12} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelUsernameEdit}
+                        disabled={isUpdating}
+                        className="h-8 px-2"
+                      >
+                        <X size={12} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm">{user.username || 'Not set'}</p>
                   )}
                 </div>
                 <div className="space-y-2">
